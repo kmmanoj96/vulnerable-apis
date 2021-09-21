@@ -10,7 +10,7 @@ from core.constants import USER_TABLE
 from jwt import encode as jwt_encode, decode as jwt_decode
 
 app = Flask(__name__)
-jwt_secret = 'JWT_t0p_s3cr3t_c0d3'
+jwt_secret = 'bankbank'
 SERVER_ERROR = 'Oops! Something is wrong at our end! Please try again later.'
 
 @app.route('/', methods=['GET'])
@@ -33,13 +33,15 @@ def create_user():
         return dict(status='FORBIDDEN', message=f'username and password should match the pattern {pattern}'), 403
 
     try:
-        users_query = f"SELECT * FROM {USER_TABLE} where username = '{username}'"
+        users_query = f"SELECT * FROM {USER_TABLE} WHERE username = '{username}'"
         users = DB.retrieve(users_query)
         if len(users) > 0:
             return dict(status='FORBIDDEN', message=f'Username already taken!'), 403
         user_id = uuid4()
         insert_user = f"INSERT INTO {USER_TABLE} values('{user_id}', '{username}', '', '', '{sha256(password.encode()).hexdigest()}', 0, 0, '')"
         DB.modify(insert_user)
+        insert_acc_sum = f"INSERT INTO account_summary values('{user_id}', 0, 0)"
+        DB.modify(insert_acc_sum)
         user = dict()
         user['user_id'] = user_id
         user['username'] = username
@@ -48,22 +50,28 @@ def create_user():
         logging.error(str(e))
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
+# API2:2019 Broken Authentication
 def get_info_from_token(api_token):
     if not api_token:
         return None
     try:
-        decoded = jwt_decode(api_token, options=dict(verify_signature=False))
+        decoded = jwt_decode(api_token, jwt_secret, algorithms=["HS256"])
         if decoded['expires'] < time.time():
             return None
-        session_query = f"SELECT * FROM {USER_TABLE} where session_token = '{api_token}'"
+        for key, value in decoded.items():
+            if not re.match(r'^[0-9A-Za-z_]+$', key) or not re.match(r'^[0-9A-Za-z-.]+$', str(value)): 
+                raise Exception('Bad pattern')
+        session_query = f"SELECT * FROM {USER_TABLE} WHERE session_token = '{api_token}'"
         records = DB.retrieve(session_query)
         return decoded if len(records) > 0 else None
-    except:
+    except Exception as e:
+        logging.error(str(e))
         return None
 
 @app.route('/user', methods=['GET'])
 def get_user_info():
-    user_info = get_info_from_token(request.headers.get('X-API-key'))
+    session_token = request.headers.get('X-API-key')
+    user_info = get_info_from_token(session_token)
     if not user_info:
         return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
     user_record_query = f"SELECT * FROM {USER_TABLE} WHERE user_id = '{user_info['user_id']}'" 
@@ -75,17 +83,21 @@ def get_user_info():
 @app.route('/user', methods=['PUT'])
 # API6:2019 Mass assignment
 def update_user_info():
-    user_info = get_info_from_token(request.headers.get('X-API-key'))
+    session_token = request.headers.get('X-API-key')
+    user_info = get_info_from_token(session_token)
     if not user_info:
         return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
     updatables = request.json
+    updates = []
     for key, value in updatables.items():
+        if not re.match(r'^[0-9A-Za-z@+. ]+$', str(value)): continue
+        if type(value) in [int, float]:
+            updates.append(f"{key} = {value}")
+        else:
+            updates.append(f"{key} = '{value}'")
+    if len(updates) > 0:
         try:
-            if not re.match(r'^[0-9A-Za-z@+. ]+$', str(value)): continue
-            if type(value) in [int, float]:
-                update_query = f"UPDATE {USER_TABLE} SET {key} = {value} WHERE user_id = '{user_info['user_id']}'"        
-            else:
-                update_query = f"UPDATE {USER_TABLE} SET {key} = '{value}' WHERE user_id = '{user_info['user_id']}'"
+            update_query = f"UPDATE {USER_TABLE} SET {', '.join(updates)} WHERE user_id = '{user_info['user_id']}'"
             DB.modify(update_query)
         except Exception as e:
             logging.error(str(e))
@@ -108,7 +120,7 @@ def login():
         return dict(status='FORBIDDEN', message=f'Authentication Failed!'), 403
     
     try:
-        users_query = f"SELECT * FROM {USER_TABLE} where username = '{username}'"
+        users_query = f"SELECT * FROM {USER_TABLE} WHERE username = '{username}'"
         users = db.retrieve(users_query)
         if len(users) == 0:
             return dict(status='FORBIDDEN', message=f'Authentication Failed!'), 403
@@ -116,7 +128,7 @@ def login():
         if user[4] != sha256(password.encode()).hexdigest():
             if user[6] + 1 > 10:
                 return dict(status='FORBIDDEN', message=f'User locked out! Try again later'), 403
-            update_loginfail = f"UPDATE {USER_TABLE} SET failed_logins = {user[6]+1} where username = '{username}'"
+            update_loginfail = f"UPDATE {USER_TABLE} SET failed_logins = {user[6]+1} WHERE username = '{username}'"
             db.modify(update_loginfail)
             return dict(status='FORBIDDEN', message=f'Authentication Failed!'), 403
         
@@ -124,19 +136,60 @@ def login():
         userd['user_id'] = user[0]
         userd['username'] = user[1]
         userd['expires'] = (time.time() + 300)
+        if int(user[5]) == 1:
+            userd['aRe_yOu_An_EmPlOyEe'] = True
         userd['session_token'] = jwt_encode(userd, jwt_secret, algorithm='HS256')
 
-        update_session = f"UPDATE {USER_TABLE} SET failed_logins = 0, session_token = '{userd['session_token']}' where username = '{username}'"
+        update_session = f"UPDATE {USER_TABLE} SET failed_logins = 0, session_token = '{userd['session_token']}' WHERE username = '{username}'"
         db.modify(update_session)
         return dict(status='OK', response=userd), 200
     except Exception as e:
         logging.error(e)
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
+PASS_CACHE = dict()
+
 @app.route('/user/change-password', methods=['POST'])
 # API4:2019 Lack of resources and rate limiting
 def change_password():
-    pass
+    global PASS_CACHE
+    session_token = request.headers.get('X-API-key')
+    user_info = get_info_from_token(session_token)
+    if not user_info:
+        return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
+    
+    data = request.json
+    if 'username' not in data or 'old_password' not in data or 'new_password' not in data:
+        return dict(status='FORBIDDEN', message='missing credentials'), 403
+    username = data['username']
+    old_pass = data['old_password']
+    new_pass = data['new_password']
+    pattern = r'^[0-9A-Za-z]+$'
+    if not re.match(pattern, username) or not re.match(pattern, old_pass) or not re.match(pattern, new_pass):
+        return dict(status='FORBIDDEN', message=f'username and passwords should match the pattern {pattern}'), 403
+
+    old_pass_hash = None
+    if username in PASS_CACHE:
+        old_pass_hash = PASS_CACHE[username]
+    else:
+        pass_query = f"SELECT password FROM {USER_TABLE} WHERE username = '{username}'"
+        old_pass_hash_record = DB.retrieve(pass_query)
+        if len(old_pass_hash_record) == 0:
+            return dict(status='FORBIDDEN', message=f'Invalid username'), 403
+        old_pass_hash = old_pass_hash_record[0][0]
+        PASS_CACHE[username] = old_pass_hash_record
+    
+    if sha256(old_pass.encode()).hexdigest() != old_pass_hash:
+        return dict(status='FORBIDDEN', message=f'Wrong old password'), 403
+    
+    try:
+        update_pass = f"UPDATE {USER_TABLE} SET password = '{sha256(new_pass.encode()).hexdigest()}' WHERE username = '{username}'"
+        DB.modify(update_pass)
+        PASS_CACHE[username] = sha256(new_pass.encode()).hexdigest()
+        return dict(status='FORBIDDEN', message=f'Password updated successfully!'), 200
+    except Exception as e:
+        logging.error(str(e))
+        return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
 @app.route('/user/logout', methods=['GET'])
 def logout():
@@ -145,20 +198,57 @@ def logout():
     if not user_info:
         return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
     try:
-        update_session = f"UPDATE {USER_TABLE} SET session_token = '' where username = '{user_info['username']}'"
+        update_session = f"UPDATE {USER_TABLE} SET session_token = '' WHERE user_id = '{user_info['user_id']}'"
         DB.modify(update_session)
         return dict(status='OK', response='Successfully logged out!'), 200
     except Exception as e:
         logging.error(str(e))
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
-@app.route('/account/summary', methods=['GET'])
-def account_summary():
-    pass
+@app.route('/account/:user_id/summary', methods=['GET'])
+# API1:2019 Broken object level authorization
+def get_account_summary(user_id):
+    session_token = request.headers.get('X-API-key')
+    user_info = get_info_from_token(session_token)
+    if not user_info:
+        return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
+    if not re.match(r'^[0-9A-Za-z-]+$', user_id):
+        return dict(status='FORBIDDEN', message=f'Bad pattern User ID!'), 403
+    try:
+        summary_statement = f"SELECT * FROM account_summary WHERE user_id = '{user_id}'"
+        account_summary = DB.retrieve(summary_statement)
+        response = dict()
+        response['user_id'], response['balance'], response['last_transaction'] = account_summary
+        return dict(status='OK', response=response), 200
+    except Exception as e:
+        logging.error(str(e))
+        return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
 @app.route('/account/transactions', methods=['GET'])
-def account_transactions():
-    pass
+# API7:2019 Security Misconfiguration
+# API8:2019 Injection
+def get_account_transactions():
+    session_token = request.headers.get('X-API-key')
+    user_info = get_info_from_token(session_token)
+    if not user_info:
+        return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
+    try:
+        limit = request.args.get('limit')
+        limit = int(limit) if limit else 10
+
+        search_string = request.args.get('filter')
+        search_string = search_string if search_string else ''
+        transactions_statement = f"SELECT * FROM account_transactions WHERE user_id = '{user_info['user_id']}' AND transaction_party LIKE '%{search_string}%' ORDER BY transaction_time DESC LIMIT {limit};"
+        transactions = DB.retrieve(transactions_statement)
+        response = list()
+        for transaction in transactions:
+            t = dict()
+            t['user_id'], t['transaction_time'], t['transaction_party'], t['transaction_type'], t['transaction_amount'], t['balance'] = transaction
+            response.append(t)
+        return dict(status='OK', response=response), 200
+    except Exception as e:
+        logging.error(str(e))
+        return dict(status='SERVER ERROR', response=str(e)), 500
 
 @app.route('/people/customers', methods=['GET'])
 # API3:2019 Excessive data exposure 
@@ -167,7 +257,7 @@ def get_customers():
     user_info = get_info_from_token(session_token)
     if not user_info:
         return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
-    customers_query = f"SELECT * FROM {USER_TABLE} where employee = 0"
+    customers_query = f"SELECT * FROM {USER_TABLE} WHERE employee = 0"
     customers = DB.retrieve(customers_query)
     result = list()
     for customer in customers:
@@ -184,7 +274,7 @@ def get_admins():
     user_info = get_info_from_token(session_token)
     if not user_info:
         return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
-    employees_query = f"SELECT * FROM {USER_TABLE} where employee = 1"
+    employees_query = f"SELECT * FROM {USER_TABLE} WHERE employee = 1"
     employees = DB.retrieve(employees_query)
     result = list()
     for employee in employees:
@@ -195,11 +285,91 @@ def get_admins():
 
 @app.route('/admin/credit', methods=['POST'])
 def admin_credit():
-    pass
+    session_token = request.headers.get('X-API-key')
+    user_info = get_info_from_token(session_token)
+    if not user_info:
+        return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
+    
+    if 'aRe_yOu_An_EmPlOyEe' not in user_info or not (user_info['aRe_yOu_An_EmPlOyEe'] == True):
+        return dict(status='FORBIDDEN', message='You are not an admin!'), 403
+
+    data = request.json
+    if 'user_id' not in data or 'transaction_party' not in data or 'transaction_amount' not in data:
+        return dict(status='FORBIDDEN', message='missing information'), 403
+    try:
+        user_id = data['user_id']
+        tr_time = time.time() 
+        tr_party = data['transaction_party']
+        tr_amount = max(0, float(data['transaction_amount']))
+
+        pattern = r'^[0-9A-Za-z- ]+$'
+        if not re.match(pattern, user_id) or not re.match(pattern, tr_party):
+            return dict(status='FORBIDDEN', message=f'Bad pattern for user ID or transaction party. Should match {pattern}'), 403
+
+        get_balance_query = f"SELECT balance FROM account_summary WHERE user_id = '{user_id}'"
+        balance_record = DB.retrieve(get_balance_query)
+        if len(balance_record) == 0:
+            return dict(status='FORBIDDEN', message=f'Invalid User ID!'), 403
+        balance = balance_record[0][0]
+        balance += tr_amount
+
+        add_tr_query = f"INSERT INTO account_transactions values('{user_id}', {tr_time}, '{tr_party}', 'credit', {tr_amount}, {balance})"
+        DB.modify(add_tr_query)
+
+        update_balance = f"UPDATE account_summary SET balance = {balance}, last_transaction = {tr_time} WHERE user_id = '{user_id}'"
+        DB.modify(update_balance)
+        
+        return dict(status='OK', response='Amount credited'), 200
+
+    except Exception as e:
+        logging.error(str(e))
+        return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
+
 
 @app.route('/admin/debit', methods=['POST'])
 def admin_debit():
-    pass
+    session_token = request.headers.get('X-API-key')
+    user_info = get_info_from_token(session_token)
+    if not user_info:
+        return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
+    
+    if 'aRe_yOu_An_EmPlOyEe' not in user_info or not (user_info['aRe_yOu_An_EmPlOyEe'] == True):
+        return dict(status='FORBIDDEN', message='You are not an admin!'), 403
+
+    data = request.json
+    if 'user_id' not in data or 'transaction_party' not in data or 'transaction_amount' not in data:
+        return dict(status='FORBIDDEN', message='missing information'), 403
+
+    try:
+        user_id = data['user_id']
+        tr_time = time.time() 
+        tr_party = data['transaction_party']
+        tr_amount = max(0, float(data['transaction_amount']))
+
+        pattern = r'^[0-9A-Za-z- ]+$'
+        if not re.match(pattern, user_id) or not re.match(pattern, tr_party):
+            return dict(status='FORBIDDEN', message=f'Bad pattern for user ID or transaction party. Should match {pattern}'), 403
+
+        get_balance_query = f"SELECT balance FROM account_summary WHERE user_id = '{user_id}'"
+        balance_record = DB.retrieve(get_balance_query)
+        if len(balance_record) == 0:
+            return dict(status='FORBIDDEN', message=f'Invalid User ID!'), 403
+        balance = balance_record[0][0]
+        if balance < tr_amount:
+            return dict(status='FORBIDDEN', message=f'Insufficient Balance!'), 403
+        balance -= tr_amount
+
+        add_tr_query = f"INSERT INTO account_transactions values('{user_id}', {tr_time}, '{tr_party}', 'debit', {tr_amount}, {balance})"
+        DB.modify(add_tr_query)
+
+        update_balance = f"UPDATE account_summary SET balance = {balance}, last_transaction = {tr_time} WHERE user_id = '{user_id}'"
+        DB.modify(update_balance)
+        
+        return dict(status='OK', response='Amount debited'), 200
+
+    except Exception as e:
+        logging.error(str(e))
+        return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
 
-app.run(debug=True)
+app.run(debug=True, threaded=False, processes=16)
