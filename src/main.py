@@ -1,6 +1,6 @@
-from logging import log
 import re
 import time
+import os
 
 from uuid import uuid4
 from flask import Flask, request
@@ -14,6 +14,12 @@ app = Flask(__name__)
 jwt_secret = 'bankbank'
 SERVER_ERROR = 'Oops! Something is wrong at our end! Please try again later.'
 PASS_CACHE = dict()
+
+if os.getenv('TRANSIENT_DB') is not None:
+    logging.info('Recreating DB')
+    if os.path.exists('db.sqlite3'):
+        os.remove('db.sqlite3')
+    DB.initialize_db()
 
 @app.route('/', methods=['GET'])
 def welcome():
@@ -391,4 +397,4 @@ def admin_debit():
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
 
-app.run(debug=True)
+app.run(debug=True, host='0.0.0.0')
