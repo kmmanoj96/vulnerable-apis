@@ -1,3 +1,4 @@
+from logging import log
 import re
 import time
 
@@ -12,6 +13,7 @@ from jwt import encode as jwt_encode, decode as jwt_decode
 app = Flask(__name__)
 jwt_secret = 'bankbank'
 SERVER_ERROR = 'Oops! Something is wrong at our end! Please try again later.'
+PASS_CACHE = dict()
 
 @app.route('/', methods=['GET'])
 def welcome():
@@ -24,18 +26,20 @@ def welcome():
 @app.route('/user', methods=['POST'])
 def create_user():
     data = request.json
-    if 'username' not in data or 'password' not in data:
+    if not data or 'username' not in data or 'password' not in data:
         return dict(status='FORBIDDEN', message='missing credentials'), 403
     username = data['username']
     password = data['password']
     pattern = r'^[0-9A-Za-z]+$'
     if not re.match(pattern, username) or not re.match(pattern, password):
+        logging.error(f'Bad pattern')
         return dict(status='FORBIDDEN', message=f'username and password should match the pattern {pattern}'), 403
 
     try:
         users_query = f"SELECT * FROM {USER_TABLE} WHERE username = '{username}'"
         users = DB.retrieve(users_query)
         if len(users) > 0:
+            logging.error(f'No user having username={username}')
             return dict(status='FORBIDDEN', message=f'Username already taken!'), 403
         user_id = uuid4()
         insert_user = f"INSERT INTO {USER_TABLE} values('{user_id}', '{username}', '', '', '{sha256(password.encode()).hexdigest()}', 0, 0, '')"
@@ -57,9 +61,11 @@ def get_info_from_token(api_token):
     try:
         decoded = jwt_decode(api_token, jwt_secret, algorithms=["HS256"])
         if decoded['expires'] < time.time():
+            logging.warning("Token expired")
             return None
         for key, value in decoded.items():
             if not re.match(r'^[0-9A-Za-z_]+$', key) or not re.match(r'^[0-9A-Za-z-.]+$', str(value)): 
+                logging.error('Bad pattern in token')
                 raise Exception('Bad pattern')
         session_query = f"SELECT * FROM {USER_TABLE} WHERE session_token = '{api_token}'"
         records = DB.retrieve(session_query)
@@ -73,6 +79,7 @@ def get_user_info():
     session_token = request.headers.get('X-API-key')
     user_info = get_info_from_token(session_token)
     if not user_info:
+        logging.warning(f'No User info')
         return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
     user_record_query = f"SELECT * FROM {USER_TABLE} WHERE user_id = '{user_info['user_id']}'" 
     user = DB.retrieve(user_record_query)[0]
@@ -80,14 +87,18 @@ def get_user_info():
     userd['user_id'], userd['username'], userd['email_id'], userd['phone_number'], _, userd['employee'], userd['failed_logins'], _ = user
     return dict(status='OK', response=userd)
 
-@app.route('/user', methods=['PUT'])
 # API6:2019 Mass assignment
+@app.route('/user', methods=['PUT'])
 def update_user_info():
     session_token = request.headers.get('X-API-key')
     user_info = get_info_from_token(session_token)
     if not user_info:
+        logging.warning(f'No User info')
         return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
     updatables = request.json
+    if not updatables:
+        logging.warning(f'No updatable User info')
+        return dict(status='FORBIDDEN', message=f'Missing information'), 403
     updates = []
     for key, value in updatables.items():
         if not re.match(r'^[0-9A-Za-z@+. ]+$', str(value)): continue
@@ -111,12 +122,13 @@ def update_user_info():
 def login():
     db = DB()
     data = request.json
-    if 'username' not in data or 'password' not in data:
+    if not data or 'username' not in data or 'password' not in data:
         return dict(status='FORBIDDEN', message='missing credentials'), 403
     username = data['username']
     password = data['password']
     pattern = r'^[0-9A-Za-z]+$'
     if not re.match(pattern, username) or not re.match(pattern, password):
+        logging.error(f'Bad pattern')
         return dict(status='FORBIDDEN', message=f'Authentication Failed!'), 403
     
     try:
@@ -135,9 +147,12 @@ def login():
         userd = dict()
         userd['user_id'] = user[0]
         userd['username'] = user[1]
-        userd['expires'] = (time.time() + 300)
+        userd['expires'] = (time.time() + 3600)
         if int(user[5]) == 1:
+            logging.info(f'Is an employee')
             userd['aRe_yOu_An_EmPlOyEe'] = True
+        else:
+            logging.info(f'Is NOT an employee')
         userd['session_token'] = jwt_encode(userd, jwt_secret, algorithm='HS256')
 
         update_session = f"UPDATE {USER_TABLE} SET failed_logins = 0, session_token = '{userd['session_token']}' WHERE username = '{username}'"
@@ -147,10 +162,8 @@ def login():
         logging.error(e)
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
-PASS_CACHE = dict()
-
-@app.route('/user/change-password', methods=['POST'])
 # API4:2019 Lack of resources and rate limiting
+@app.route('/user/change-password', methods=['POST'])
 def change_password():
     global PASS_CACHE
     session_token = request.headers.get('X-API-key')
@@ -159,25 +172,31 @@ def change_password():
         return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
     
     data = request.json
-    if 'username' not in data or 'old_password' not in data or 'new_password' not in data:
+    if not data or 'username' not in data or 'old_password' not in data or 'new_password' not in data:
         return dict(status='FORBIDDEN', message='missing credentials'), 403
     username = data['username']
     old_pass = data['old_password']
     new_pass = data['new_password']
     pattern = r'^[0-9A-Za-z]+$'
     if not re.match(pattern, username) or not re.match(pattern, old_pass) or not re.match(pattern, new_pass):
+        logging.info(f'Bad pattern')
         return dict(status='FORBIDDEN', message=f'username and passwords should match the pattern {pattern}'), 403
 
     old_pass_hash = None
+    logging.debug(username + str(PASS_CACHE))
     if username in PASS_CACHE:
+        logging.info(f'using cache')
         old_pass_hash = PASS_CACHE[username]
     else:
+        logging.info(f'NOT using cache')
         pass_query = f"SELECT password FROM {USER_TABLE} WHERE username = '{username}'"
         old_pass_hash_record = DB.retrieve(pass_query)
         if len(old_pass_hash_record) == 0:
             return dict(status='FORBIDDEN', message=f'Invalid username'), 403
         old_pass_hash = old_pass_hash_record[0][0]
-        PASS_CACHE[username] = old_pass_hash_record
+        PASS_CACHE[username] = old_pass_hash
+    
+    logging.debug(PASS_CACHE)
     
     if sha256(old_pass.encode()).hexdigest() != old_pass_hash:
         return dict(status='FORBIDDEN', message=f'Wrong old password'), 403
@@ -186,7 +205,8 @@ def change_password():
         update_pass = f"UPDATE {USER_TABLE} SET password = '{sha256(new_pass.encode()).hexdigest()}' WHERE username = '{username}'"
         DB.modify(update_pass)
         PASS_CACHE[username] = sha256(new_pass.encode()).hexdigest()
-        return dict(status='FORBIDDEN', message=f'Password updated successfully!'), 200
+        logging.debug(PASS_CACHE)
+        return dict(status='OK', message=f'Password updated successfully!'), 200
     except Exception as e:
         logging.error(str(e))
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
@@ -205,8 +225,8 @@ def logout():
         logging.error(str(e))
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
-@app.route('/account/:user_id/summary', methods=['GET'])
 # API1:2019 Broken object level authorization
+@app.route('/account/<user_id>/summary', methods=['GET'])
 def get_account_summary(user_id):
     session_token = request.headers.get('X-API-key')
     user_info = get_info_from_token(session_token)
@@ -218,15 +238,15 @@ def get_account_summary(user_id):
         summary_statement = f"SELECT * FROM account_summary WHERE user_id = '{user_id}'"
         account_summary = DB.retrieve(summary_statement)
         response = dict()
-        response['user_id'], response['balance'], response['last_transaction'] = account_summary
+        response['user_id'], response['balance'], response['last_transaction'] = account_summary[0]
         return dict(status='OK', response=response), 200
     except Exception as e:
         logging.error(str(e))
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
-@app.route('/account/transactions', methods=['GET'])
 # API7:2019 Security Misconfiguration
 # API8:2019 Injection
+@app.route('/account/transactions', methods=['GET'])
 def get_account_transactions():
     session_token = request.headers.get('X-API-key')
     user_info = get_info_from_token(session_token)
@@ -250,38 +270,38 @@ def get_account_transactions():
         logging.error(str(e))
         return dict(status='SERVER ERROR', response=str(e)), 500
 
-@app.route('/people/customers', methods=['GET'])
 # API3:2019 Excessive data exposure 
+@app.route('/people/customers', methods=['GET'])
 def get_customers():
-    session_token = request.headers.get('X-API-key')
-    user_info = get_info_from_token(session_token)
-    if not user_info:
-        return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
-    customers_query = f"SELECT * FROM {USER_TABLE} WHERE employee = 0"
-    customers = DB.retrieve(customers_query)
-    result = list()
-    for customer in customers:
-        cd = dict()
-        cd['user_id'], cd['username'], cd['email_id'], cd['phone'] = customer[:4]
-        result.append(cd)
-    return dict(status='OK', response=result), 200
+    try:
+        customers_query = f"SELECT * FROM {USER_TABLE} WHERE employee = 0"
+        customers = DB.retrieve(customers_query)
+        result = list()
+        for customer in customers:
+            cd = dict()
+            cd['user_id'], cd['username'], cd['email_id'], cd['phone'] = customer[:4]
+            result.append(cd)
+        return dict(status='OK', response=result), 200
+    except Exception as e:
+        logging.error(str(e))
+        return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
 # HIDDEN FROM COLLECTIONS
-@app.route('/people/employees', methods=['GET'])
 # API5:2019 Broken function level authorization
+@app.route('/people/employees', methods=['GET'])
 def get_admins():
-    session_token = request.headers.get('X-API-key')
-    user_info = get_info_from_token(session_token)
-    if not user_info:
-        return dict(status='FORBIDDEN', message=f'Unauthenticated!'), 403
-    employees_query = f"SELECT * FROM {USER_TABLE} WHERE employee = 1"
-    employees = DB.retrieve(employees_query)
-    result = list()
-    for employee in employees:
-        ed = dict()
-        ed['user_id'], ed['username'], ed['email_id'], ed['phone'] = employee[:4]
-        result.append(ed)
-    return dict(status='OK', response=result), 200
+    try:
+        employees_query = f"SELECT * FROM {USER_TABLE} WHERE employee = 1"
+        employees = DB.retrieve(employees_query)
+        result = list()
+        for employee in employees:
+            ed = dict()
+            ed['user_id'], ed['username'], ed['email_id'], ed['phone'] = employee[:4]
+            result.append(ed)
+        return dict(status='OK', response=result), 200
+    except Exception as e:
+        logging.error(str(e))
+        return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
 @app.route('/admin/credit', methods=['POST'])
 def admin_credit():
@@ -294,7 +314,7 @@ def admin_credit():
         return dict(status='FORBIDDEN', message='You are not an admin!'), 403
 
     data = request.json
-    if 'user_id' not in data or 'transaction_party' not in data or 'transaction_amount' not in data:
+    if not data or 'user_id' not in data or 'transaction_party' not in data or 'transaction_amount' not in data:
         return dict(status='FORBIDDEN', message='missing information'), 403
     try:
         user_id = data['user_id']
@@ -325,7 +345,6 @@ def admin_credit():
         logging.error(str(e))
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
-
 @app.route('/admin/debit', methods=['POST'])
 def admin_debit():
     session_token = request.headers.get('X-API-key')
@@ -337,7 +356,7 @@ def admin_debit():
         return dict(status='FORBIDDEN', message='You are not an admin!'), 403
 
     data = request.json
-    if 'user_id' not in data or 'transaction_party' not in data or 'transaction_amount' not in data:
+    if not data or 'user_id' not in data or 'transaction_party' not in data or 'transaction_amount' not in data:
         return dict(status='FORBIDDEN', message='missing information'), 403
 
     try:
@@ -372,4 +391,4 @@ def admin_debit():
         return dict(status='SERVER ERROR', response=SERVER_ERROR), 500
 
 
-app.run(debug=True, threaded=False, processes=16)
+app.run(debug=True)
