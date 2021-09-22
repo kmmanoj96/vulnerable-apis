@@ -274,6 +274,7 @@ def get_account_transactions():
         return dict(status='OK', response=response), 200
     except Exception as e:
         logging.error(str(e))
+        # CORS allow all headers
         return dict(status='SERVER ERROR', response=str(e)), 500
 
 # API3:2019 Excessive data exposure 
