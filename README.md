@@ -3,15 +3,14 @@ vulnerable APIs inspired by https://github.com/mattvaldes/vulnerable-api
 
 # Setup
 
-## Out of the box
+## If, Out of the box
 `docker pull kmmanoj/vulnerable-apis`
 
-## Else
-## Build the application as docker image
-`docker build -t vulnerable-apis .`
+## Else, Build the application as docker image
+`docker build -t kmmanoj/vulnerable-apis .`
 
-## Run the application as docker container
-`docker run --name vuln-api-instance --rm -it -p 5000:5000 vulnerable-apis`
+## Then, Run the application as docker container
+`docker run --name vuln-api-instance --rm -it -p 5000:5000 kmmanoj/vulnerable-apis`
 
 ## Using util
 
