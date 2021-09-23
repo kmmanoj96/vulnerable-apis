@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "cdba9188-019a-4303-a525-5ad1d8703f66",
+		"_postman_id": "561f3e8f-acc9-4909-8157-c69353630e95",
 		"name": "The Good Bank APIs",
 		"description": "This collection contains the APIs that power The Good Bank's client website and internal service portals.\n\nProceed with caution!",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -28,6 +28,138 @@
 		{
 			"name": "Bank User",
 			"item": [
+				{
+					"name": "Authentication",
+					"item": [
+						{
+							"name": "Update User Information",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email_id\": \"kmmanoj96@gulbank.com\",\n    \"phone\": \"+91 9876543210\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}/user",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"user"
+									]
+								},
+								"description": "Authenticated users can update their user information."
+							},
+							"response": []
+						},
+						{
+							"name": "Get User Information",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{host}}/user",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"user"
+									]
+								},
+								"description": "Authenticated users can fetch their user information."
+							},
+							"response": []
+						},
+						{
+							"name": "User Change Password",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"\",\n    \"old_password\": \"\",\n    \"new_password\": \"\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}/user/change-password",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"user",
+										"change-password"
+									]
+								},
+								"description": "This API is used to update the user password. The user must be authenticated and must remember the current password to update."
+							},
+							"response": []
+						},
+						{
+							"name": "User Logout",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{host}}/user/logout",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"user",
+										"logout"
+									]
+								},
+								"description": "This API revokes an active user session."
+							},
+							"response": []
+						}
+					],
+					"auth": {
+						"type": "apikey",
+						"apikey": [
+							{
+								"key": "value",
+								"value": "{{session_token}}",
+								"type": "string"
+							},
+							{
+								"key": "key",
+								"value": "X-API-key",
+								"type": "string"
+							}
+						]
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						}
+					]
+				},
 				{
 					"name": "Create User",
 					"request": {
@@ -100,98 +232,6 @@
 								"login"
 							]
 						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get User Information",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{host}}/user",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"user"
-							]
-						},
-						"description": "Authenticated users can fetch their user information."
-					},
-					"response": []
-				},
-				{
-					"name": "Update User Information",
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"email_id\": \"kmmanoj96@gulbank.com\",\n    \"phone\": \"+91 9876543210\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{host}}/user",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"user"
-							]
-						},
-						"description": "Authenticated users can update their user information."
-					},
-					"response": []
-				},
-				{
-					"name": "User Change Password",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"username\": \"\",\n    \"old_password\": \"\",\n    \"new_password\": \"\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{host}}/user/change-password",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"user",
-								"change-password"
-							]
-						},
-						"description": "This API is used to update the user password. The user must be authenticated and must remember the current password to update."
-					},
-					"response": []
-				},
-				{
-					"name": "User Logout",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{host}}/user/logout",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"user",
-								"logout"
-							]
-						},
-						"description": "This API revokes an active user session."
 					},
 					"response": []
 				}
