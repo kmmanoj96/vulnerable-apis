@@ -1,10 +1,10 @@
 {
 	"id": "62d75953-5e1c-485e-9748-6506807c7128",
-	"name": "GulBank: Local Environment",
+	"name": "Good bank Environment",
 	"values": [
 		{
 			"key": "host",
-			"value": "http://localhost:5000",
+			"value": "http://security.postman-breakable.com",
 			"enabled": true
 		},
 		{

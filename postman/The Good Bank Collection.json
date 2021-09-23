@@ -1,43 +1,23 @@
 {
 	"info": {
-		"_postman_id": "6ca4a172-4fd2-42f5-92d5-12fd508144e8",
-		"name": "How secure are your APIs?",
+		"_postman_id": "cdba9188-019a-4303-a525-5ad1d8703f66",
+		"name": "The Good Bank APIs",
+		"description": "This collection contains the APIs that power The Good Bank's client website and internal service portals.\n\nProceed with caution!",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "bank",
+			"name": "Health",
 			"item": [
 				{
-					"name": "Welcome",
+					"name": "Ping",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{host}}/",
+							"raw": "{{host}}",
 							"host": [
 								"{{host}}"
-							],
-							"path": [
-								""
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Our customers",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{host}}/people/customers",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"people",
-								"customers"
 							]
 						}
 					},
@@ -46,136 +26,8 @@
 			]
 		},
 		{
-			"name": "user",
+			"name": "Bank User",
 			"item": [
-				{
-					"name": "Authenticated",
-					"item": [
-						{
-							"name": "Get User Information",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{host}}/user",
-									"host": [
-										"{{host}}"
-									],
-									"path": [
-										"user"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Update User Information",
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"email_id\": \"kmmanoj96@gulbank.com\",\n    \"phone\": \"+91 9876543210\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{host}}/user",
-									"host": [
-										"{{host}}"
-									],
-									"path": [
-										"user"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "User Change Password",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"username\": \"kmmanoj96001\",\n    \"old_password\": \"kmmanoj96001pass\",\n    \"new_password\": \"kmmanoj96001pass\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{host}}/user/change-password",
-									"host": [
-										"{{host}}"
-									],
-									"path": [
-										"user",
-										"change-password"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "User Logout",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{host}}/user/logout",
-									"host": [
-										"{{host}}"
-									],
-									"path": [
-										"user",
-										"logout"
-									]
-								}
-							},
-							"response": []
-						}
-					],
-					"auth": {
-						"type": "apikey",
-						"apikey": [
-							{
-								"key": "key",
-								"value": "X-API-key",
-								"type": "string"
-							},
-							{
-								"key": "value",
-								"value": "{{session_token}}",
-								"type": "string"
-							}
-						]
-					},
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									""
-								]
-							}
-						},
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									""
-								]
-							}
-						}
-					]
-				},
 				{
 					"name": "Create User",
 					"request": {
@@ -198,7 +50,8 @@
 							"path": [
 								"user"
 							]
-						}
+						},
+						"description": "Register a new user with The Good Bank. The username must be unique."
 					},
 					"response": []
 				},
@@ -249,11 +102,104 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Get User Information",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/user",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"user"
+							]
+						},
+						"description": "Authenticated users can fetch their user information."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Information",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email_id\": \"kmmanoj96@gulbank.com\",\n    \"phone\": \"+91 9876543210\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/user",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"user"
+							]
+						},
+						"description": "Authenticated users can update their user information."
+					},
+					"response": []
+				},
+				{
+					"name": "User Change Password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"\",\n    \"old_password\": \"\",\n    \"new_password\": \"\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/user/change-password",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"user",
+								"change-password"
+							]
+						},
+						"description": "This API is used to update the user password. The user must be authenticated and must remember the current password to update."
+					},
+					"response": []
+				},
+				{
+					"name": "User Logout",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/user/logout",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"user",
+								"logout"
+							]
+						},
+						"description": "This API revokes an active user session."
+					},
+					"response": []
 				}
-			]
+			],
+			"description": "This folder contains APIs to manage users of The Good Bank."
 		},
 		{
-			"name": "account",
+			"name": "Bank Account",
 			"item": [
 				{
 					"name": "Account summary",
@@ -270,7 +216,8 @@
 								"{{user_id}}",
 								"summary"
 							]
-						}
+						},
+						"description": "Fetch account summary for a single user."
 					},
 					"response": []
 				},
@@ -300,11 +247,13 @@
 									"description": "Search string to filter on transaction party"
 								}
 							]
-						}
+						},
+						"description": "Fetch transactions for a single account."
 					},
 					"response": []
 				}
 			],
+			"description": "This folder contains the APIs that deals with user account and transactions.",
 			"auth": {
 				"type": "apikey",
 				"apikey": [
@@ -342,8 +291,26 @@
 			]
 		},
 		{
-			"name": "admin",
+			"name": "Bank Admin",
 			"item": [
+				{
+					"name": "Our customers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/people/customers",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"people",
+								"customers"
+							]
+						}
+					},
+					"response": []
+				},
 				{
 					"name": "Credit amount",
 					"request": {
@@ -367,7 +334,8 @@
 								"admin",
 								"credit"
 							]
-						}
+						},
+						"description": "To be used by the bank tellers to cash checks, receive deposits, savings account transactions among other things."
 					},
 					"response": []
 				},
@@ -394,11 +362,13 @@
 								"admin",
 								"debit"
 							]
-						}
+						},
+						"description": "To be used by the bank tellers to cash checks, receive deposits, savings account transactions among other things."
 					},
 					"response": []
 				}
 			],
+			"description": "This folder contains APIs used by bank administration. To provide support to customer in case of an issue.",
 			"auth": {
 				"type": "apikey",
 				"apikey": [
