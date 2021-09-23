@@ -4,7 +4,6 @@ import os
 
 from uuid import uuid4
 from flask import Flask, request
-from hashlib import sha256
 from core.logger import logging
 from core.db import DB
 from core.constants import USER_TABLE
@@ -48,7 +47,7 @@ def create_user():
             logging.error(f'No user having username={username}')
             return dict(status='FORBIDDEN', message=f'Username already taken!'), 403
         user_id = uuid4()
-        insert_user = f"INSERT INTO {USER_TABLE} values('{user_id}', '{username}', '', '', '{sha256(password.encode()).hexdigest()}', 0, 0, '')"
+        insert_user = f"INSERT INTO {USER_TABLE} values('{user_id}', '{username}', '', '', '{password}', 0, 0, '')"
         DB.modify(insert_user)
         insert_acc_sum = f"INSERT INTO account_summary values('{user_id}', 0, 0)"
         DB.modify(insert_acc_sum)
@@ -143,7 +142,7 @@ def login():
         if len(users) == 0:
             return dict(status='FORBIDDEN', message=f'Authentication Failed!'), 403
         user = users[0]
-        if user[4] != sha256(password.encode()).hexdigest():
+        if user[4] != password:
             if user[6] + 1 > 3:
                 return dict(status='FORBIDDEN', message=f'User locked out! Try again later'), 403
             update_loginfail = f"UPDATE {USER_TABLE} SET failed_logins = {user[6]+1} WHERE username = '{username}'"
@@ -204,13 +203,13 @@ def change_password():
     
     logging.debug(PASS_CACHE)
     
-    if sha256(old_pass.encode()).hexdigest() != old_pass_hash:
+    if old_pass != old_pass_hash:
         return dict(status='FORBIDDEN', message=f'Wrong old password'), 403
     
     try:
-        update_pass = f"UPDATE {USER_TABLE} SET password = '{sha256(new_pass.encode()).hexdigest()}' WHERE username = '{username}'"
+        update_pass = f"UPDATE {USER_TABLE} SET password = '{new_pass}' WHERE username = '{username}'"
         DB.modify(update_pass)
-        PASS_CACHE[username] = sha256(new_pass.encode()).hexdigest()
+        PASS_CACHE[username] = new_pass
         logging.debug(PASS_CACHE)
         return dict(status='OK', message=f'Password updated successfully!'), 200
     except Exception as e:

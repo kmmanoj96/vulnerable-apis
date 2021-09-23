@@ -3,8 +3,6 @@ import sqlite3
 from core.logger import logging
 from core.constants import USER_TABLE
 
-from hashlib import sha256
-
 class DB:
     @staticmethod
     def initialize_db():
@@ -14,10 +12,10 @@ class DB:
         connection.execute(f'CREATE TABLE account_summary (user_id string, balance real, last_transaction real)')
         connection.execute(f'CREATE TABLE account_transactions (user_id string, transaction_time real, transaction_party varchar(255), transaction_type varchar(7), transaction_amount real, balance real)')
         connection.execute(f'''INSERT INTO {USER_TABLE} VALUES
-        ('1fd7cd4e-9925-4abf-a09d-7d0f05acb86e', 'theFounder', 'theFounder@gulbank.com', '+91 1234567890', '{sha256("th3F0und3rspassw0rd".encode()).hexdigest()}', 1, 0, ''),
-        ('2e0b0a82-e11d-4c62-87d2-901813d684e1', 'theCEO', 'theCEO@gulbank.com', '+91 9876543210', '{sha256("th3c30sp455".encode()).hexdigest()}', 1, 0, ''), 
-        ('1ce7cb77-e991-42db-84a2-742c7e3dce16', 'user001', 'user001@email.com', '', '{sha256("userpass01isverycomplex".encode()).hexdigest()}', 0, 0, ''), 
-        ('f6938f49-d227-4745-a711-1d0616a9d6cd', 'user002', 'user002@mailid.com', '+1 1234543211', '{sha256("userpass02isalsocomplex".encode()).hexdigest()}', 0, 0, ''), 
+        ('1fd7cd4e-9925-4abf-a09d-7d0f05acb86e', 'theFounder', 'theFounder@gulbank.com', '+91 1234567890', 'th3F0und3rspassw0rd', 1, 0, ''),
+        ('2e0b0a82-e11d-4c62-87d2-901813d684e1', 'theCEO', 'theCEO@gulbank.com', '+91 9876543210', 'th3c30sp455', 1, 0, ''), 
+        ('1ce7cb77-e991-42db-84a2-742c7e3dce16', 'user001', 'user001@email.com', '', 'userpass01isverycomplex', 0, 0, ''), 
+        ('f6938f49-d227-4745-a711-1d0616a9d6cd', 'user002', 'user002@mailid.com', '+1 1234543211', 'userpass02isalsocomplex', 0, 0, ''), 
         ('01fb8943-ea83-4d23-94e0-80209d5a893d', 'adam', '', '', 'account', 0, 0, '')
         ''')
         connection.execute(f'''INSERT INTO account_summary VALUES
