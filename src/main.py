@@ -144,7 +144,7 @@ def login():
             return dict(status='FORBIDDEN', message=f'Authentication Failed!'), 403
         user = users[0]
         if user[4] != sha256(password.encode()).hexdigest():
-            if user[6] + 1 > 10:
+            if user[6] + 1 > 3:
                 return dict(status='FORBIDDEN', message=f'User locked out! Try again later'), 403
             update_loginfail = f"UPDATE {USER_TABLE} SET failed_logins = {user[6]+1} WHERE username = '{username}'"
             db.modify(update_loginfail)

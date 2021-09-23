@@ -16,7 +16,7 @@ class DB:
         ('2e0b0a82-e11d-4c62-87d2-901813d684e1', 'theCEO', 'theCEO@gulbank.com', '+91 9876543210', 'th3c30sp455', 1, 0, ''), 
         ('1ce7cb77-e991-42db-84a2-742c7e3dce16', 'user001', 'user001@email.com', '', 'userpass01isverycomplex', 0, 0, ''), 
         ('f6938f49-d227-4745-a711-1d0616a9d6cd', 'user002', 'user002@mailid.com', '+1 1234543211', 'userpass02isalsocomplex', 0, 0, ''), 
-        ('01fb8943-ea83-4d23-94e0-80209d5a893d', 'user003', '', '', 'butuser03spassisnotcomplex', 0, 0, '')
+        ('01fb8943-ea83-4d23-94e0-80209d5a893d', 'adam', '', '', 'account', 0, 0, '')
         ''')
         connection.execute(f'''INSERT INTO account_summary VALUES
         ('1ce7cb77-e991-42db-84a2-742c7e3dce16', 187236.35, 1632204630.2189791), 
