@@ -125,7 +125,6 @@ def update_user_info():
     
 @app.route('/user/login', methods=['POST'])
 def login():
-    db = DB()
     data = request.json
     if not data or 'username' not in data or 'password' not in data:
         return dict(status='FORBIDDEN', message='missing credentials'), 403
@@ -138,15 +137,15 @@ def login():
     
     try:
         users_query = f"SELECT * FROM {USER_TABLE} WHERE username = '{username}'"
-        users = db.retrieve(users_query)
+        users = DB.retrieve(users_query)
         if len(users) == 0:
             return dict(status='FORBIDDEN', message=f'Authentication Failed!'), 403
         user = users[0]
+        if user[6] + 1 > 3:
+            return dict(status='FORBIDDEN', message=f'User locked out! Try again later'), 403
         if user[4] != password:
-            if user[6] + 1 > 3:
-                return dict(status='FORBIDDEN', message=f'User locked out! Try again later'), 403
             update_loginfail = f"UPDATE {USER_TABLE} SET failed_logins = {user[6]+1} WHERE username = '{username}'"
-            db.modify(update_loginfail)
+            DB.modify(update_loginfail)
             return dict(status='FORBIDDEN', message=f'Authentication Failed!'), 403
         
         userd = dict()
@@ -161,7 +160,7 @@ def login():
         userd['session_token'] = jwt_encode(userd, jwt_secret, algorithm='HS256')
 
         update_session = f"UPDATE {USER_TABLE} SET failed_logins = 0, session_token = '{userd['session_token']}' WHERE username = '{username}'"
-        db.modify(update_session)
+        DB.modify(update_session)
         return dict(status='OK', response=userd), 200
     except Exception as e:
         logging.error(e)
@@ -187,23 +186,23 @@ def change_password():
         logging.info(f'Bad pattern')
         return dict(status='FORBIDDEN', message=f'username and passwords should match the pattern {pattern}'), 403
 
-    old_pass_hash = None
+    old_pass_val = None
     logging.debug(username + str(PASS_CACHE))
     if username in PASS_CACHE:
         logging.info(f'using cache')
-        old_pass_hash = PASS_CACHE[username]
+        old_pass_val = PASS_CACHE[username]
     else:
         logging.info(f'NOT using cache')
         pass_query = f"SELECT password FROM {USER_TABLE} WHERE username = '{username}'"
-        old_pass_hash_record = DB.retrieve(pass_query)
-        if len(old_pass_hash_record) == 0:
+        old_pass_val_record = DB.retrieve(pass_query)
+        if len(old_pass_val_record) == 0:
             return dict(status='FORBIDDEN', message=f'Invalid username'), 403
-        old_pass_hash = old_pass_hash_record[0][0]
-        PASS_CACHE[username] = old_pass_hash
+        old_pass_val = old_pass_val_record[0][0]
+        PASS_CACHE[username] = old_pass_val
     
     logging.debug(PASS_CACHE)
     
-    if old_pass != old_pass_hash:
+    if old_pass != old_pass_val:
         return dict(status='FORBIDDEN', message=f'Wrong old password'), 403
     
     try:
@@ -211,6 +210,8 @@ def change_password():
         DB.modify(update_pass)
         PASS_CACHE[username] = new_pass
         logging.debug(PASS_CACHE)
+        update_loginfail = f"UPDATE {USER_TABLE} SET failed_logins = 0 WHERE username = '{username}'"
+        DB.modify(update_loginfail)
         return dict(status='OK', message=f'Password updated successfully!'), 200
     except Exception as e:
         logging.error(str(e))
@@ -273,7 +274,7 @@ def get_account_transactions():
         return dict(status='OK', response=response), 200
     except Exception as e:
         logging.error(str(e))
-        # CORS allow all headers
+        # TODO: CORS allow all headers
         return dict(status='SERVER ERROR', response=str(e)), 500
 
 # API3:2019 Excessive data exposure 
