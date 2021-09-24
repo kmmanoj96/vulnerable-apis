@@ -3,16 +3,42 @@ vulnerable APIs inspired by https://github.com/mattvaldes/vulnerable-api
 
 # Setup
 
-## If, Out of the box
-`docker pull kmmanoj/vulnerable-apis`
+## Docker
+### If, Out of the box
+`docker pull kmmanoj/vulnerable-apis` (may be outdated with respect to the current state of the repo)
 
-## Else, Build the application as docker image
+### Else, Build the application as docker image (preferred)
 `docker build -t kmmanoj/vulnerable-apis .`
 
-## Then, Run the application as docker container
+### Finally, Run the application as docker container
 `docker run --name vuln-api-instance --rm -it -p 5000:5000 kmmanoj/vulnerable-apis`
 
-## Using util
+## Traditional way
+
+Create a python virtual environment: `virtualenv venv`
+
+Activate the virtual environment: `source ./venv/bin/activate`
+
+Install the dependencies: `pip install -r src/requirements.txt`
+
+Start the application with specific environment variables: `TRANSIENT_DB=true python src/main.py`
+
+## Fork the collection and the environment in Postman
+Open Postman (desktop agent preferrably)
+
+Fork the [collection](https://www.postman.com/postman/workspace/postman-live/collection/17042069-561f3e8f-acc9-4909-8157-c69353630e95) to a workspace of your choice.
+
+![Forking the collection](/res/forking%20collection.png)
+
+Fork the [environment](https://www.postman.com/postman/workspace/postman-live/environment/17042069-1e57b415-ab9e-4028-bb73-b276d28458ac) to the same workspace where you forked the above collection.
+
+![Forking the environment](/res/forking%20env.png)
+
+Set the initial value and current value of the `host` variable to `http://localhost:5000` 
+
+Go back to the collections and start hacking!
+
+## Using util (if using the docker setup)
 
 Login to the container
 
@@ -29,6 +55,8 @@ Usage:
 	python3 brute_force_jwt_token.py make - to create a token using a leaked secret
 	python3 brute_force_jwt_token.py break - to find the secret used by JWT token
 ```
+
+__NOTE__: For non-containerized deployments, find the util directory in the repository itself. The required dependencies are already installed in the virtual environment.
 
 # Performance
 
