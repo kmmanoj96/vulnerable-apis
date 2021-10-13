@@ -26,11 +26,15 @@ Start the application with specific environment variables: `TRANSIENT_DB=true py
 ## Fork the collection and the environment in Postman
 Open Postman (desktop agent preferrably)
 
-Fork the [collection](https://www.postman.com/postman/workspace/postman-live/collection/17042069-561f3e8f-acc9-4909-8157-c69353630e95) to a workspace of your choice.
+Fork the collection and environment to your own workspace by clicking the **Run in Postman** button below.
+
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/17042069-561f3e8f-acc9-4909-8157-c69353630e95?action=collection%2Ffork&collection-url=entityId%3D17042069-561f3e8f-acc9-4909-8157-c69353630e95%26entityType%3Dcollection%26workspaceId%3De75d51a3-60cc-4e4c-9abd-92a87046399c#?env%5BThe%20Good%20Bank%20Environment%5D=W3sia2V5IjoiaG9zdCIsInZhbHVlIjoiaHR0cDovL3NlY3VyaXR5LnBvc3RtYW4tYnJlYWthYmxlLmNvbSIsImVuYWJsZWQiOnRydWV9XQ==)
+
+Or separately, fork the [collection](https://www.postman.com/postman/workspace/postman-live/collection/17042069-561f3e8f-acc9-4909-8157-c69353630e95) to a workspace of your choice.
 
 ![Forking the collection](/res/forking%20collection.png)
 
-Fork the [environment](https://www.postman.com/postman/workspace/postman-live/environment/17042069-1e57b415-ab9e-4028-bb73-b276d28458ac) to the same workspace where you forked the above collection.
+And fork the [environment](https://www.postman.com/postman/workspace/postman-live/environment/17042069-1e57b415-ab9e-4028-bb73-b276d28458ac) to the same workspace where you forked the above collection.
 
 ![Forking the environment](/res/forking%20env.png)
 
