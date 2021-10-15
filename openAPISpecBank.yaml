@@ -1,13 +1,6 @@
 openapi: 3.0.0
 info:
   title: The Good Bank APIs
-  description: >-
-    This collection contains the APIs that power The Good Bank's client website
-    and internal service portals.
-
-
-    Proceed with caution!
-	Sidenote - Source code can be found at https://github.com/kmmanoj96/vulnerable-apis
   version: 1.0.0
 servers:
   - url: http://security.postman-breakable.com
