@@ -1,0 +1,253 @@
+openapi: 3.0.0
+info:
+  title: The Good Bank APIs
+  description: >-
+    This collection contains the APIs that power The Good Bank's client website
+    and internal service portals.
+
+
+    Proceed with caution!
+	Sidenote - Source code can be found at https://github.com/kmmanoj96/vulnerable-apis
+  version: 1.0.0
+servers:
+  - url: http://security.postman-breakable.com
+tags:
+  - name: Health
+  - name: Bank User
+    description: This folder contains APIs to manage users of The Good Bank.
+  - name: Bank User > Authentication
+  - name: Bank Account
+    description: >-
+      This folder contains the APIs that deals with user account and
+      transactions.
+  - name: Bank Admin
+    description: >-
+      This folder contains APIs used by bank administration. To provide support
+      to customer in case of an issue.
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header     
+      name: X-API-key
+paths:
+  /:
+    get:
+      tags:
+        - Health
+      summary: Ping
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /user:
+    put:
+      tags:
+        - Bank User > Authentication
+      summary: Update User Information
+      description: Authenticated users can update their user information.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email_id: kmmanoj96@gulbank.com
+                phone: +91 9876543210
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Bank User > Authentication
+      summary: Get User Information
+      description: Authenticated users can fetch their user information.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Bank User
+      summary: Create User
+      description: Register a new user with The Good Bank. The username must be unique.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                username: kmmanoj96001
+                password: kmmanoj96001pass
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /user/change-password:
+    post:
+      tags:
+        - Bank User > Authentication
+      summary: User Change Password
+      description: >-
+        This API is used to update the user password. The user must be
+        authenticated and must remember the current password to update.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                username: ''
+                old_password: ''
+                new_password: ''
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /user/logout:
+    get:
+      tags:
+        - Bank User > Authentication
+      summary: User Logout
+      description: This API revokes an active user session.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /user/login:
+    post:
+      tags:
+        - Bank User
+      summary: User Login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                username: kmmanoj96001
+                password: kmmanoj96001pass
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /account/{user_id}/summary:
+    get:
+      tags:
+        - Bank Account
+      summary: Account summary
+      description: Fetch account summary for a single user.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /account/transactions:
+    get:
+      tags:
+        - Bank Account
+      summary: Account transactions
+      description: Fetch transactions for a single account.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: number of transactions to display
+          example: '10'
+        - name: filter
+          in: query
+          schema:
+            type: string
+          description: Search string to filter on transaction party
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /people/customers:
+    get:
+      tags:
+        - Bank Admin
+      summary: Our customers
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /admin/credit:
+    post:
+      tags:
+        - Bank Admin
+      summary: Credit amount
+      description: >-
+        To be used by the bank tellers to cash checks, receive deposits, savings
+        account transactions among other things.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                user_id: user-id
+                transaction_party: nowhere
+                transaction_amount: 100
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /admin/debit:
+    post:
+      tags:
+        - Bank Admin
+      summary: Debit amount
+      description: >-
+        To be used by the bank tellers to cash checks, receive deposits, savings
+        account transactions among other things.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                user_id: user-id
+                transaction_party: somwhere
+                transaction_amount: 100
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
