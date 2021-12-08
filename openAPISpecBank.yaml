@@ -41,7 +41,7 @@ paths:
       summary: Update User Information
       description: Authenticated users can update their user information.
       security:
-        - ApiKeyAuth: []
+        - ApiKeyAuth: []   
       requestBody:
         content:
           application/json:
@@ -50,18 +50,6 @@ paths:
               example:
                 email_id: kmmanoj96@gulbank.com
                 phone: +91 9876543210
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json: {}
-    get:
-      tags:
-        - Bank User > Authentication
-      summary: Get User Information
-      description: Authenticated users can fetch their user information.
-      security:
-        - ApiKeyAuth: []
       responses:
         '200':
           description: Successful response
@@ -93,8 +81,6 @@ paths:
       description: >-
         This API is used to update the user password. The user must be
         authenticated and must remember the current password to update.
-      security:
-        - ApiKeyAuth: []
       requestBody:
         content:
           application/json:
@@ -146,8 +132,6 @@ paths:
         - Bank Account
       summary: Account summary
       description: Fetch account summary for a single user.
-      security:
-        - ApiKeyAuth: []
       parameters:
         - name: user_id
           in: path
